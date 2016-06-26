@@ -1,0 +1,56 @@
+#include <ESP8266WiFi.h>
+#include <ESP8266WebServer.h>
+
+const char* ssid = "SSID";
+const char* password = "password";
+
+ESP8266WebServer server(80);
+
+const int ledPin = 13;
+
+String form = "<title>ESP 8266 LED Web Server</title><br><br><form action='led'><input type='radio' name='state' value='1'>On<input type='radio' name='state' value='0'>Off<br><br><input type='submit' value='Enviar'></form>";
+
+void handle_root() {
+  int state = digitalRead(ledPin);
+  server.send(200, "text/html", String("LED is <b>") + ((state)?"On</b>":"Off</b>") + form);
+}
+
+void handle_led(){
+  int state = server.arg("state").toInt();
+  digitalWrite(ledPin, state);
+  server.send(200, "text/html", String("LED is <b>") + ((state)?"On</b>":"Off</b>") + form);
+}
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(ledPin, OUTPUT);
+  digitalWrite(ledPin, LOW);
+
+  //Connect to Wi-Fi network.
+  WiFi.begin(ssid, password);
+  Serial.println("");
+
+  // Wait for connection
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.print(".");
+  }
+  Serial.println("");
+  Serial.print("Connected to ");
+  Serial.println(ssid);
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
+
+  // set up the endpoints for http server
+  server.on("/", handle_root);
+
+  server.on("/led", handle_led);
+
+  server.begin();
+  Serial.println("Web Server started");
+}
+
+void loop() {
+// check for incomming client connections frequently in the main loop:
+  server.handleClient();
+}
